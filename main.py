@@ -58,12 +58,14 @@ async def find_laptop(call: types.CallbackQuery, state: FSMContext):
     except Exception as e:
         logging.error(f"Ошибка в find_laptop: {e}")
         await call.message.answer("Ошибка при обработке запроса. Попробуйте позже.")
+        await state.clear()
 
 @dp.message(LaptopSearch.waiting_for_specs)
 async def process_laptop_specs(message: types.Message, state: FSMContext):
     try:
         user_id = message.from_user.id
         user_specs = message.text
+        logging.info(f"Сохранение запроса от пользователя {user_id}: {user_specs}")
         save_search(user_id, user_specs)
         await message.answer(f"🔍 Ищу ноутбуки по запросу: {user_specs}\n(Пример: MSI Katana 17, ASUS TUF 15)")
         await state.clear()
@@ -82,8 +84,11 @@ async def compare_laptops(call: types.CallbackQuery):
 async def main():
     try:
         await asyncio.to_thread(init_db)
+        logging.info("База данных инициализирована успешно.")
+
         await bot.delete_webhook(drop_pending_updates=True)
         await asyncio.sleep(1)
+
         await dp.start_polling(bot)
     except Exception as e:
         logging.critical(f"Критическая ошибка в работе бота: {e}")
