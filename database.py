@@ -20,3 +20,12 @@ def save_search(user_id, query):
     cursor.execute("INSERT INTO search_history (user_id, query) VALUES (?, ?)", (user_id, query))
     conn.commit()
     conn.close()
+
+def get_search_history(user_id):
+    conn = sqlite3.connect("laptop_search.db")
+    cursor = conn.cursor()
+    cursor.execute("SELECT query FROM search_history WHERE user_id = ?", (user_id, ))
+    rows = cursor.fetchall()
+    conn.close()
+
+    return [{"query": row[0]} for row in rows]
