@@ -7,6 +7,9 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import StatesGroup, State
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from dotenv import load_dotenv
+from database import init_db, save_search
+from aiogram.fsm.storage.memory import MemoryStorage
+
 
 load_dotenv()
 TOKEN = os.getenv("BOT_TOKEN")
@@ -15,7 +18,7 @@ if not TOKEN:
     raise ValueError("Ошибка: BOT_TOKEN не найден в .env файле!")
 
 bot = Bot(token=TOKEN)
-dp = Dispatcher()
+dp = Dispatcher(storage=MemoryStorage())
 logging.basicConfig(level=logging.INFO)
 
 class LaptopSearch(StatesGroup):
@@ -59,7 +62,9 @@ async def find_laptop(call: types.CallbackQuery, state: FSMContext):
 @dp.message(LaptopSearch.waiting_for_specs)
 async def process_laptop_specs(message: types.Message, state: FSMContext):
     try:
+        user_id = message.from_user.id
         user_specs = message.text
+        save_search(user_id, user_specs)
         await message.answer(f"🔍 Ищу ноутбуки по запросу: {user_specs}\n(Пример: MSI Katana 17, ASUS TUF 15)")
         await state.clear()
     except Exception as e:
@@ -76,7 +81,9 @@ async def compare_laptops(call: types.CallbackQuery):
 
 async def main():
     try:
+        await asyncio.to_thread(init_db)
         await bot.delete_webhook(drop_pending_updates=True)
+        await asyncio.sleep(1)
         await dp.start_polling(bot)
     except Exception as e:
         logging.critical(f"Критическая ошибка в работе бота: {e}")
